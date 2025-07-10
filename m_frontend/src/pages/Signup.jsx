@@ -100,10 +100,13 @@ export default function Signup() {
     setSocialError('');
     try {
       const mockLinkedInUser = {
-        name: 'LinkedIn User',
+        id: Date.now(),
+        firstName: 'LinkedIn',
+        lastName: 'User',
         email: 'linkedin@example.com',
         picture: 'https://via.placeholder.com/150',
-        provider: 'linkedin'
+        provider: 'linkedin',
+        role: 'user'
       };
       localStorage.setItem('user', JSON.stringify(mockLinkedInUser));
       localStorage.setItem('token', 'linkedin-mock-token');
