@@ -6,8 +6,10 @@ import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import axios from '../api/apiInstance';
 import divider from '../assets/divider.svg';
+import { useApp } from '../context/AppContext';
 
 export default function Signup() {
+  const { login } = useApp();
   const [form, setForm] = useState({
     firstname: '',
     lastname: '',
