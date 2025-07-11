@@ -98,25 +98,19 @@ export default function Login() {
     setSocialError('Google login failed.');
   };
 
-  // LinkedIn login handler (simulated)
-  const handleLinkedInLogin = () => {
+  // LinkedIn login handler
+  const handleLinkedInLogin = async () => {
     setSocialError('');
     try {
-      const mockLinkedInUser = {
-        id: Date.now(),
-        firstName: 'LinkedIn',
-        lastName: 'User',
-        email: 'linkedin@example.com',
-        picture: 'https://via.placeholder.com/150',
-        provider: 'linkedin',
-        role: 'user'
-      };
-      localStorage.setItem('user', JSON.stringify(mockLinkedInUser));
-      localStorage.setItem('token', 'linkedin-mock-token');
-      login(mockLinkedInUser); // Add this to update the context
-      navigate('/');
+      // Get the LinkedIn auth URL from backend
+      const response = await axios.get('/auth/linkedin');
+      const { authUrl } = response.data;
+      
+      // Redirect to LinkedIn OAuth
+      window.location.href = authUrl;
     } catch (err) {
-      setSocialError('LinkedIn login failed.');
+      console.error('LinkedIn login error:', err);
+      setSocialError('LinkedIn login failed. Please try again.');
     }
   };
 

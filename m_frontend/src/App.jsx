@@ -25,6 +25,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const VolunteerRegister = lazy(() => import('./pages/VolunteerRegister'));
 const VolunteerDashboard = lazy(() => import('./pages/VolunteerDashboard'));
 const DonorDashboard = lazy(() => import('./pages/DonorDashboard'));
+const LinkedInCallback = lazy(() => import('./pages/LinkedInCallback'));
 
 // Create a client
 const queryClient = new QueryClient({
@@ -71,6 +72,8 @@ function App() {
                     <Route path="/donor-login" element={<Login />} />
                     <Route path="/Volunteer-login" element={<VolunteerSignIn />} />
                     <Route path="/donor-dashboard" element={<DonorDashboard />} />
+                    <Route path="/auth/linkedin/success" element={<LinkedInCallback />} />
+                    <Route path="/auth/linkedin/error" element={<LinkedInCallback />} />
                   </Routes>
                 </Suspense>
               </main>

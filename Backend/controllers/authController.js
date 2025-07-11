@@ -3,6 +3,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 
+// LinkedIn OAuth configuration
+const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
+const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
+const REDIRECT_URI = process.env.NODE_ENV === 'production' 
+  ? 'https://your-production-domain.com/auth/linkedin/callback'
+  : 'http://localhost:3000/auth/linkedin/callback';
+
 export async function signup(req, res) {
   try {
     // Check if database is connected
@@ -198,5 +205,108 @@ export async function getAllUsers(req, res) {
     res.json({ success: true, data: users });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch users', error: err.message });
+  }
+}
+
+export async function linkedinAuth(req, res) {
+  try {
+    const scope = 'r_liteprofile r_emailaddress';
+    const state = Math.random().toString(36).substring(7); // Random state for CSRF protection
+    
+    // Store state in session or temporary storage (for production, use Redis)
+    // For now, we'll use a simple approach
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}&scope=${encodeURIComponent(scope)}`;
+    
+    res.json({ authUrl });
+  } catch (err) {
+    console.error('LinkedIn auth error:', err);
+    res.status(500).json({ message: 'LinkedIn authentication failed', error: err.message });
+  }
+}
+
+export async function linkedinCallback(req, res) {
+  try {
+    const { code, state } = req.query;
+    
+    if (!code) {
+      return res.status(400).json({ message: 'Authorization code is required' });
+    }
+
+    // Exchange code for access token
+    const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', null, {
+      params: {
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI,
+        client_id: LINKEDIN_CLIENT_ID,
+        client_secret: LINKEDIN_CLIENT_SECRET,
+      },
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+    });
+
+    const { access_token } = tokenResponse.data;
+
+    // Fetch user profile
+    const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
+      headers: { 
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/json'
+      },
+    });
+
+    // Fetch email address
+    const emailResponse = await axios.get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', {
+      headers: { 
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/json'
+      },
+    });
+
+    const profile = profileResponse.data;
+    const email = emailResponse.data.elements[0]['handle~'].emailAddress;
+    const firstName = profile.localizedFirstName || 'LinkedIn';
+    const lastName = profile.localizedLastName || 'User';
+
+    // Check if user exists
+    let user = await db.User.findOne({ where: { email } });
+    
+    if (!user) {
+      // Create new user
+      const username = `${firstName.toLowerCase()}_${lastName.toLowerCase()}_${Math.floor(Math.random()*10000)}`;
+      user = await db.User.create({
+        email,
+        firstName,
+        lastName,
+        username,
+        phone: '',
+        password: '', // No password for social login
+        profileImage: null,
+        role: 'user' // Default role
+      });
+    }
+
+    // Generate JWT
+    const jwtSecret = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '7d' });
+
+    // Redirect to frontend with token
+    const frontendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://your-production-domain.com'
+      : 'http://localhost:3000';
+    
+    res.redirect(`${frontendUrl}/auth/linkedin/success?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    
+  } catch (err) {
+    console.error('LinkedIn callback error:', err);
+    
+    // Redirect to frontend with error
+    const frontendUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://your-production-domain.com'
+      : 'http://localhost:3000';
+    
+    res.redirect(`${frontendUrl}/auth/linkedin/error?message=${encodeURIComponent('LinkedIn authentication failed')}`);
   }
 }
