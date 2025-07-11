@@ -80,6 +80,7 @@ export default function Signup() {
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      login(user); // <-- Add this!
       if (user.role === 'admin') {
         navigate('/admin');
       } else {

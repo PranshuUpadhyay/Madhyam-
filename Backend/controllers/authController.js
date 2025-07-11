@@ -172,7 +172,7 @@ export async function googleSignIn(req, res) {
 
     // Generate JWT with fallback secret for development
     const jwtSecret = process.env.JWT_SECRET || 'dev-secret-key-change-in-production';
-    const token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '7d' });
     res.json({
       message: 'Google sign-in successful',
       user: {
@@ -181,7 +181,8 @@ export async function googleSignIn(req, res) {
         firstName: user.firstName,
         lastName: user.lastName,
         username: user.username,
-        profileImage: user.profileImage
+        profileImage: user.profileImage,
+        role: user.role
       },
       token
     });
