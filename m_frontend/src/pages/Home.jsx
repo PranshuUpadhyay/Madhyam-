@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 const Home = () => {
-  const { screenSize, addNotification } = useApp();
+  const { user, isAuthenticated, screenSize, addNotification } = useApp();
   const navigate = useNavigate();
   const [selectedDonationType, setSelectedDonationType] = useState('all');
   const [searchRadius, setSearchRadius] = useState(10);
@@ -36,7 +36,7 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   
   // Fetch dynamic stats from backend
-  const { data: statsData, isLoading: statsLoading, error: statsError } = useQuery(
+  const { data: statsData, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useQuery(
     'summaryStats',
     donorService.getSummaryStats,
     {
@@ -170,6 +170,12 @@ const Home = () => {
     };
     fetchFeatured();
   }, []);
+
+  // Refetch stats and other user-dependent data when user or isAuthenticated changes
+  useEffect(() => {
+    refetchStats();
+    // Add other refetches here if needed
+  }, [user, isAuthenticated]);
 
   return (
     <>
